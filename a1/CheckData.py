@@ -11,7 +11,7 @@ import re
 #         path_mp[li[0]] = li[1]
 
 # check data format
-data_path = "../../wapo/WashingtonPost/data/TREC_article_2012.txt"
+data_path = "../wapo/WashingtonPost/data/TREC_article_2012.txt"
 with open(data_path, 'r') as f:
     for line in islice(f, 30831, None):
         obj = json.loads(line)
@@ -33,4 +33,3 @@ with open(data_path, 'r') as f:
         obj['text'] = text
         del obj['contents']
         doc = json.dumps(obj)
-
