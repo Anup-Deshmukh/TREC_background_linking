@@ -47,6 +47,7 @@ class XmlHandler(xml.sax.ContentHandler):
             mp['url'] = self.url
             mp['entities'] = self.entities
             topics.append(mp)
+            # print("------------------ TOPICS HERE: ", topics)
         self.tag = ""
 
     # Call when a character is read
@@ -88,7 +89,7 @@ if __name__ == "__main__":
     Handler = XmlHandler()
     parser.setContentHandler(Handler)
 
-    # parser.parse("D:/Download/Projects/TREC2019/WashingtonPost.v2/data/newsir18-topics.txt")
-    parser.parse("E:/Track/WashingtonPost.v2/data/newsir18-entities.txt")
+    parser.parse("/Users/udhavsethi/dev/TREC_background_linking/wapo/WashingtonPost/data/topics2018.txt")
+    # parser.parse("E:/Track/WashingtonPost.v2/data/newsir18-entities.txt")
 
 

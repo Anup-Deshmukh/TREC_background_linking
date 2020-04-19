@@ -5,16 +5,18 @@ import jieba
 import re
 import numpy as np
 from elasticsearch import Elasticsearch
-import src.elastic.xmlhandler as xh
+import xmlhandler as xh
+
+INDEX_NAME = "news_alpha"
 
 # get file path conf
 path_mp = {}
-with open(os.getcwd()+'/../../path.cfg', 'r', encoding='utf-8') as f:
+with open(os.getcwd()+'/../path.cfg', 'r', encoding='utf-8') as f:
 	for line in f:
 		li = line[:-1].split('=')
 		path_mp[li[0]] = li[1]
 
-es = Elasticsearch()
+es = Elasticsearch(port=7200)
 
 topics = xh.get_topics(path_mp['DataPath'] + path_mp['topics'])
 # get stop words list
@@ -38,8 +40,8 @@ def test_backgound_linking():
 					}
 				}
 			}
-			res = es.search(index='news', body=dsl)
-			# print(res)
+			res = es.search(index=INDEX_NAME, body=dsl)
+			print(res)
 			doc = res['hits']['hits'][0]['_source']
 			dt = doc['published_date']
 			docid = doc['id']
@@ -72,7 +74,7 @@ def test_backgound_linking():
 						}
 
 					}
-					res = es.search(index='news', body=dsl)
+					res = es.search(index=INDEX_NAME, body=dsl)
 					res = res['aggregations']['idf']['buckets']
 					idf = 0.0
 					for dc in res:
@@ -83,6 +85,7 @@ def test_backgound_linking():
 						q[w] = 0.0
 			for w in q.keys():
 				q[w] *= tf[w]
+				# q now contains the tf * idf for each word
 			q = sorted(q.items(), key=lambda x: x[1], reverse=True)
 			query = ""
 			sz = min(20, len(q))
@@ -106,7 +109,7 @@ def test_backgound_linking():
 					},
 				}
 			}
-			res = es.search(index='news', body=dsl)
+			res = es.search(index=INDEX_NAME, body=dsl)
 			res = res['hits']['hits']
 			# output result.test file
 			print('result:', len(res))
