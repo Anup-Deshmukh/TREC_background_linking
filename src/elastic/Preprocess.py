@@ -14,7 +14,7 @@ from nltk.stem.porter import *
 path_mp = cfg.get_path_conf('../path.cfg')
 es = Elasticsearch(port=7200)
 stemmer = PorterStemmer()
-INDEX_NAME = "news_alpha"
+INDEX_NAME = "news_trial1"
 
 
 def extract_body(args = None):
