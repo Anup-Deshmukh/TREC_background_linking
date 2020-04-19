@@ -8,6 +8,7 @@ from elasticsearch import Elasticsearch
 import xmlhandler as xh
 
 INDEX_NAME = "news_alpha"
+result_file = "bresults_trial.test"
 
 # get file path conf
 path_mp = {}
@@ -26,11 +27,11 @@ D = 595037
 
 
 def test_backgound_linking():
-	with open('bresults.test', 'w', encoding='utf-8') as f1:
+	with open(result_file, 'w', encoding='utf-8') as f1:
 		num = 1
 		for mp in topics:
-			print(mp['num'].split(':')[1].strip())
-			print(num, mp['docid'])
+			# print(mp['num'].split(':')[1].strip())
+			print("query docid", mp['docid'])
 			num += 1
 			# search by docid to get the query
 			dsl = {
@@ -41,13 +42,14 @@ def test_backgound_linking():
 				}
 			}
 			res = es.search(index=INDEX_NAME, body=dsl)
-			print(res)
+			# print(res)
 			doc = res['hits']['hits'][0]['_source']
 			dt = doc['published_date']
 			docid = doc['id']
+			print("found docid: ", docid)
 			# print(doc)
 			# remove stop words
-			text = re.sub('[’!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~]+', '', doc['text'])
+			text = re.sub('[’!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~]+', '', doc['title_body'])
 			words = "#".join(jieba.cut(text)).split('#')
 			q = {}
 			tf = {}
@@ -62,13 +64,13 @@ def test_backgound_linking():
 						"size": 0,
 						'query': {
 							'match_phrase': {
-								'text': w
+								'title_body': w
 							},
 						},
 						"aggs": {
 							"idf": {
 								"terms": {
-									"field": "source"
+									"field": "source.keyword"
 								}
 							}
 						}
@@ -100,7 +102,7 @@ def test_backgound_linking():
 				"query": {
 					'bool': {
 						'must': {
-							'match': {'text': query}
+							'match': {'title_body': query}
 						},
 						"must_not": {"match": {"id": docid}},
 						'filter': {
@@ -112,7 +114,8 @@ def test_backgound_linking():
 			res = es.search(index=INDEX_NAME, body=dsl)
 			res = res['hits']['hits']
 			# output result.test file
-			print('result:', len(res))
+			print('Number of hits:', len(res))
+			print('Writing to file: ', result_file)
 			cnt = 1
 			for ri in res:
 				out = []
@@ -121,7 +124,7 @@ def test_backgound_linking():
 				out.append(ri['_source']['id'])
 				out.append(str(cnt))
 				out.append(str(ri['_score']))
-				out.append('ICTNET')
+				out.append('NEWAPPROACH')
 				ans = "\t".join(out) + "\n"
 				f1.write(ans)
 				cnt += 1
