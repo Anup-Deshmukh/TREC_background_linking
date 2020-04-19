@@ -5,7 +5,7 @@ import re
 
 # get conf file path
 path_mp = {}
-with open(os.getcwd()+'/../../path.cfg', 'r', encoding='utf-8') as f:
+with open(os.getcwd()+'/../path.cfg', 'r', encoding='utf-8') as f:
     for line in f:
         li = line[:-1].split('=')
         path_mp[li[0]] = li[1]
