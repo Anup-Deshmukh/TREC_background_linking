@@ -1,12 +1,21 @@
 import sys
-                                                                                                     
+sys.path.append("..")
+
+import DataProcess.getCfg as cfg
+import os
+import json
+import re
+from tqdm import tqdm
+from elasticsearch import Elasticsearch
+from nltk.stem.porter import *
 
 # get file path conf
 path_mp = cfg.get_path_conf('../path.cfg')
 es = Elasticsearch(port=7200)
-nlp = StanfordCoreNLP('http://localhost', port=7100)
+# nlp = StanfordCoreNLP('http://localhost', port=7100)
 stemmer = PorterStemmer()
-INDEX_NAME = "news_stem"
+INDEX_NAME = "news_beta"
+result_file = "bresults_query2.test"
 
 
 def extract_body(args = None):
@@ -66,7 +75,7 @@ def test_backgound_linking():
 	print('stop words loaded.')
 	# test case: doc_id, topic_id
 	case_mp = {}
-	with open(path_mp['DataPath'] + path_mp['topics19'], 'r', encoding='utf-8') as f:
+	with open(path_mp['DataPath'] + path_mp['topics'], 'r', encoding='utf-8') as f:
 		li = []
 		for line in f:
 			topic_id = re.search(r'<num>.*?</num>', line)
@@ -83,7 +92,7 @@ def test_backgound_linking():
 	print('test case loaded.')
 	caseid = 1
 	# with open('/home/trec7/lianxiaoying/trec_eval.9.0/test/elastic_bresult.test', 'w', encoding='utf-8') as f1:
-	with open('bresult4541.test', 'w', encoding='utf-8') as f1:
+	with open(result_file, 'w', encoding='utf-8') as f1:
 		for doc_id in case_mp:
 			print(caseid, doc_id)
 			caseid += 1
@@ -229,7 +238,7 @@ def test_backgound_linking():
 				ans = "\t".join(out) + "\n"
 				f1.write(ans)
 				cnt += 1
-	nlp.close()
+	# nlp.close()
 
 
 test_backgound_linking()
