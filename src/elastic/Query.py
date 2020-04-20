@@ -7,8 +7,8 @@ import numpy as np
 from elasticsearch import Elasticsearch
 import xmlhandler as xh
 
-INDEX_NAME = "news_alpha"
-result_file = "bresults_trial.test"
+INDEX_NAME = "news_beta"
+result_file = "bresults_query1.test"
 
 # get file path conf
 path_mp = {}
@@ -49,7 +49,7 @@ def test_backgound_linking():
 			print("found docid: ", docid)
 			# print(doc)
 			# remove stop words
-			text = re.sub('[’!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~]+', '', doc['title_body'])
+			text = re.sub('[’!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~]+', '', doc['body'])
 			words = "#".join(jieba.cut(text)).split('#')
 			q = {}
 			tf = {}
@@ -90,7 +90,7 @@ def test_backgound_linking():
 				# q now contains the tf * idf for each word
 			q = sorted(q.items(), key=lambda x: x[1], reverse=True)
 			query = ""
-			sz = min(20, len(q))
+			sz = min(100, len(q))
 			cnt = 0
 			for w in q:
 				if cnt >= sz:
@@ -102,8 +102,23 @@ def test_backgound_linking():
 				"query": {
 					'bool': {
 						'must': {
-							'match': {'title_body': query}
+							'match': {
+								'title_body':{
+									'query': query,
+									'boost': 1
+								}
+							}
 						},
+						'should': [
+							{
+								'match': {
+									'title_body': {
+										'query': doc['title'],
+										"boost": 2.34
+									}
+								}
+							},
+						],
 						"must_not": {"match": {"id": docid}},
 						'filter': {
 							"range": {"published_date": {"lt": dt}}
