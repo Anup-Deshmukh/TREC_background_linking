@@ -12,9 +12,9 @@ from nltk.stem.porter import *
 
 # get file path conf
 path_mp = cfg.get_path_conf('../path.cfg')
-es = Elasticsearch(port=7200)
+es = Elasticsearch()
 stemmer = PorterStemmer()
-INDEX_NAME = "news_trial1"
+INDEX_NAME = "news_try1"
 
 
 def extract_body(args = None):

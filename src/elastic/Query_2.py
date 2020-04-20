@@ -11,11 +11,11 @@ from nltk.stem.porter import *
 
 # get file path conf
 path_mp = cfg.get_path_conf('../path.cfg')
-es = Elasticsearch(port=7200)
-# nlp = StanfordCoreNLP('http://localhost', port=7100)
-stemmer = PorterStemmer()
-INDEX_NAME = "news_beta"
 result_file = "bresults_query2.test"
+es = Elasticsearch()
+nlp = StanfordCoreNLP('http://localhost', port=7100)
+stemmer = PorterStemmer()
+INDEX_NAME = "news_try1"
 
 
 def extract_body(args = None):

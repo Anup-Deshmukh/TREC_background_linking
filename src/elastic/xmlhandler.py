@@ -89,7 +89,7 @@ if __name__ == "__main__":
     Handler = XmlHandler()
     parser.setContentHandler(Handler)
 
-    parser.parse("/Users/udhavsethi/dev/TREC_background_linking/wapo/WashingtonPost/data/topics2018.txt")
+    parser.parse("/home/aa2deshm/Desktop/Waterloo/Winter 2020/IR/project/Track_code-master/wapo/WashingtonPost/data/topics2018.txt")
     # parser.parse("E:/Track/WashingtonPost.v2/data/newsir18-entities.txt")
 
 
