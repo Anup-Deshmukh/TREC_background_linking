@@ -9,9 +9,12 @@ with open('wapo_dataset_merged.txt', 'w') as outfile:
    
     for names in filenames: 
         with open(names) as infile:           
-<<<<<<< Updated upstream
+
             outfile.write(infile.read())
-=======
-            outfile.write(infile.read()) 
-        #outfile.write("\n") 
->>>>>>> Stashed changes
+
+
+
+
+
+
+

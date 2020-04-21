@@ -7,9 +7,12 @@ import numpy as np
 from elasticsearch import Elasticsearch
 import xmlhandler as xh
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sentence_transformers import SentenceTransformer
+from rake_nltk import Rake
+import math
 
 INDEX_NAME = "news_try1"
-result_file = "../../wapo/WashingtonPost/data/result_files/titbody80.test"
+result_file = "../../wapo/WashingtonPost/data/result_files/IND_UW_A1.test"
 
 path_mp = {}
 with open(os.getcwd()+'/../path.cfg', 'r', encoding='utf-8') as f:
@@ -17,15 +20,21 @@ with open(os.getcwd()+'/../path.cfg', 'r', encoding='utf-8') as f:
 		li = line[:-1].split('=')
 		path_mp[li[0]] = li[1]
 
-es = Elasticsearch()
+# init bert finetuned model
+model = SentenceTransformer('roberta-base-nli-stsb-mean-tokens')
 
+# accessing BM 25 index
+es = Elasticsearch()
 topics = xh.get_topics(path_mp['DataPath'] + path_mp['topics'])
 # get stop words list
 stwlist = [line.strip() for line in open('stopwords.txt', encoding='utf-8').readlines()]
-# doc length 595037
+
+# init parameters
 D = 595037
-min_words = 80
-num_results = 100
+min_words = 100
+minw_bert = 100
+num_res_bm25 = 200
+num_res_bert = 100
 alpha_title = 0.7
 
 def test_backgound_linking():
@@ -106,7 +115,7 @@ def test_backgound_linking():
 				cnt += 1
 			# query the doc
 			dsl = {
-				"size": num_results,
+				"size": num_res_bm25,
 				"query": {
 					'bool': {
 						'must': {
@@ -135,31 +144,90 @@ def test_backgound_linking():
 				}
 			}
 			# res is the set of retrieved documents
-			res = es.search(index=INDEX_NAME, body=dsl)
-			res = res['hits']['hits']
-			#print(res[0])
+			res_bm25 = es.search(index=INDEX_NAME, body=dsl)
+			res_bm25 = res_bm25['hits']['hits']
+			
+			# refine bm25 results with bert
+			res_bert_bm = filter_bert(res_bm25, query, minw_bert, num_res_bm25, num_res_bert)
+
 			# calculate diversity of retrieved documents 
-			diversity_score = calc_diversity(res, num_results, alpha_title)
+			diversity_score = calc_diversity(res_bert_bm, num_res_bert, alpha_title)
 			add_score += diversity_score
 			topic_cnt += 1
+			
 			# output result.test file
-			print('Number of hits:', len(res))
+			print('Number of hits:', len(res_bert_bm))
 			print('Writing to file: ', result_file)
 			cnt = 1
-			for ri in res:
+			for ri in res_bert_bm:
 				out = []
 				out.append(mp['num'].split(':')[1].strip())
 				out.append('Q0')
 				out.append(ri['_source']['id'])
 				out.append(str(cnt))
 				out.append(str(ri['_score']))
-				out.append('titbody80')
+				out.append('IND_UW_A1')
 				ans = "\t".join(out) + "\n"
 				f1.write(ans)
 				cnt += 1				
-	print(topic_cnt)
+	#print(topic_cnt)
 	print('diversity of all retrieved docuements for all topics: ', add_score/topic_cnt)
 	return
+
+
+def extract_key(text, w, r):
+	
+	r.extract_keywords_from_text(text) 
+	a = r.get_ranked_phrases()
+	t = ""
+	cut = min(w, len(a))
+	count = 0
+	for phrase in a:
+		if count >= cut:
+			break
+		t = t + ' ' + phrase
+		count += 1
+	return t	
+
+def scoring_bert(e1, e2):
+	
+	cosine = np.dot(e1, e2) / (np.linalg.norm(e1) * np.linalg.norm(e2))
+	score = 1./(1 + math.exp(-100*(cosine - 0.95)))
+	return score
+
+def filter_bert(res, query, w, num, num_bert):
+	
+	r = Rake()
+	text_corpus = []
+	score_arr = []
+	query = str(query)
+	query_corpus = []
+	query_corpus.append(query)
+	res_new = []
+
+	for i in range(len(res)):
+		text = str(res[i]['_source']['title_body'])
+		key_text = extract_key(text, w, r)
+		text_corpus.append(key_text)
+
+	text_emb = np.array(model.encode(text_corpus))
+	query_emb = np.array(model.encode(query_corpus))
+	query_emb = query_emb[0]
+
+	#print("text emb size: ", text_emb.shape)
+	#print("query emb size: ", query_emb.shape)
+
+	#for t, emb in zip(text_corpus, text_emb):
+	for emb in text_emb:	
+		score = scoring_bert(query_emb, emb)
+		score_arr.append(score)
+
+	score_arr = np.array(score_arr)
+	max_ind = score_arr.argsort()[-num_bert:][::-1]
+	for i in max_ind:
+		res_new.append(res[i])
+
+	return res_new
 
 def calc_diversity(res, num, alpha):
 	t_corpus = []
@@ -186,5 +254,6 @@ def calc_diversity(res, num, alpha):
 	div_score = (1 - alpha)*t_score + alpha*b_score
 	#print(div_score)
 	return div_score
+
 
 test_backgound_linking()
