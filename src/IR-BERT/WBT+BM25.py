@@ -10,9 +10,13 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sentence_transformers import SentenceTransformer
 from rake_nltk import Rake
 import math
+#import nltk
+#from nltk.corpus import stopwords
+#nltk.download('stopwords')
+#from nltk.tokenize import word_tokenize
 
 INDEX_NAME = "news_try1"
-result_file = "../../wapo/WashingtonPost/data/result_files/IND_UW_A1.test"
+result_file = "../../wapo/WashingtonPost/data/result_files/IND_UW_A8.test"
 
 path_mp = {}
 with open(os.getcwd()+'/../path.cfg', 'r', encoding='utf-8') as f:
@@ -21,7 +25,7 @@ with open(os.getcwd()+'/../path.cfg', 'r', encoding='utf-8') as f:
 		path_mp[li[0]] = li[1]
 
 # init bert finetuned model
-model = SentenceTransformer('roberta-base-nli-stsb-mean-tokens')
+model = SentenceTransformer('bert-base-nli-mean-tokens')
 
 # accessing BM 25 index
 es = Elasticsearch()
@@ -30,10 +34,10 @@ topics = xh.get_topics(path_mp['DataPath'] + path_mp['topics'])
 stwlist = [line.strip() for line in open('stopwords.txt', encoding='utf-8').readlines()]
 
 # init parameters
-D = 595037
-min_words = 100
+D = 571963
+min_words = 80
 minw_bert = 100
-num_res_bm25 = 200
+num_res_bm25 = 100
 num_res_bert = 100
 alpha_title = 0.7
 
@@ -148,25 +152,25 @@ def test_backgound_linking():
 			res_bm25 = res_bm25['hits']['hits']
 			
 			# refine bm25 results with bert
-			res_bert_bm = filter_bert(res_bm25, query, minw_bert, num_res_bm25, num_res_bert)
+			#res_bert_bm = filter_bert(res_bm25, query, minw_bert, num_res_bm25, num_res_bert)
 
 			# calculate diversity of retrieved documents 
-			diversity_score = calc_diversity(res_bert_bm, num_res_bert, alpha_title)
+			diversity_score = calc_diversity(res_bm25, num_res_bm25, alpha_title)
 			add_score += diversity_score
 			topic_cnt += 1
 			
 			# output result.test file
-			print('Number of hits:', len(res_bert_bm))
+			print('Number of hits:', len(res_bm25))
 			print('Writing to file: ', result_file)
 			cnt = 1
-			for ri in res_bert_bm:
+			for ri in res_bm25:
 				out = []
 				out.append(mp['num'].split(':')[1].strip())
 				out.append('Q0')
 				out.append(ri['_source']['id'])
 				out.append(str(cnt))
 				out.append(str(ri['_score']))
-				out.append('IND_UW_A1')
+				out.append('IND_UW_A8')
 				ans = "\t".join(out) + "\n"
 				f1.write(ans)
 				cnt += 1				
@@ -193,6 +197,7 @@ def scoring_bert(e1, e2):
 	
 	cosine = np.dot(e1, e2) / (np.linalg.norm(e1) * np.linalg.norm(e2))
 	score = 1./(1 + math.exp(-100*(cosine - 0.95)))
+	#print(score)
 	return score
 
 def filter_bert(res, query, w, num, num_bert):
@@ -206,7 +211,12 @@ def filter_bert(res, query, w, num, num_bert):
 	res_new = []
 
 	for i in range(len(res)):
+		
 		text = str(res[i]['_source']['title_body'])
+		# remove stop words
+		#text_tokens = word_tokenize(text)
+		#tokens_without_sw = [word for word in text_tokens if not word in stopwords.words()]
+		#text = (" ").join(tokens_without_sw)
 		key_text = extract_key(text, w, r)
 		text_corpus.append(key_text)
 
