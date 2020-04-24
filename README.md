@@ -13,9 +13,9 @@ This repo has the implementation of two methods
 
 ## Best method (IR-BERT)
 
-* we propose IR-BERT, which combines the retrieval
+* We propose IR-BERT, which combines the retrieval
 power of BM25 with the contextual understanding gained through a BERT based model.
 
-![Image of Yaktocat](https://octodex.github.com/images/yaktocat.png)
+![Image of Yaktocat](https://github.com/Anup-Deshmukh/TREC_background_linking/blob/master/res1.png)
 
 
