@@ -2,10 +2,10 @@
 IR-GAN @ TREC 2020 News Track (Background Linking)
 
 This repo has the implementation of two methods
-* Weighted Search Query + BM25 [code here](./src/IR-GAN/wBT+BM25.py)
-* IR-BERT [code here](./src/IR-GAN/IR-GAN.py)
+* Weighted Search Query + BM25 [code here](./src/IR-BERT/wBT+BM25.py)
+* IR-BERT [code here](./src/IR-BERT/IR-BERT.py)
 
-## Data Process and Observation [code here](./src/Preprocess.py)
+## Data Process and Observation [code here](./src/IR-BERT/Preprocess.py)
 
 * lower case
 * stemmer
