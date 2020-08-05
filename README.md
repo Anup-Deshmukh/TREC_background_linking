@@ -25,7 +25,8 @@ This repo has the implementation of two methods
 
 #### Best performing model: IR-BERT
 
-![Model](https://github.com/Anup-Deshmukh/TREC_background_linking/blob/master/final.png =300x300)
+<!-- ![Model](https://github.com/Anup-Deshmukh/TREC_background_linking/blob/master/final.png =300x300) -->
+<img src="https://github.com/Anup-Deshmukh/TREC_background_linking/blob/master/final.png" alt="drawing" height="200" width="250"/>
 
 * We propose IR-BERT, which combines the retrieval power of BM25 with the contextual understanding gained through a BERT based model. It has following components
 	* Elasticsearch BM25
