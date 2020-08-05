@@ -5,7 +5,7 @@ This repo has the implementation of two methods
 * Weighted Search Query + BM25 [code here](./src/IR-BERT/wBT+BM25.py)
 * IR-BERT [code here](./src/IR-BERT/IR-BERT.py)
 
-### Steps for running the code on your machine
+#### Steps for running the code on your machine
 * ./src/path.cfg 
 	* Ignore the following variables: 
 		* topics19
@@ -25,7 +25,7 @@ This repo has the implementation of two methods
 
 #### Best performing model: IR-BERT
 
-<img src="https://github.com/Anup-Deshmukh/TREC_background_linking/blob/master/final.png" alt="drawing" height="150" width="400"/>
+<img src="https://github.com/Anup-Deshmukh/TREC_background_linking/blob/master/final.png" alt="drawing" height="170" width="300"/>
 
 * We propose IR-BERT, which combines the retrieval power of BM25 with the contextual understanding gained through a BERT based model. It has following components
 	* Elasticsearch BM25
@@ -33,10 +33,10 @@ This repo has the implementation of two methods
 	* Setence BERT for semantic similarity
 * Our model outperforms the TREC median as well as the highest scoring model of 2018 in terms of the nDCG@5 metric.
 
-<img src="https://github.com/Anup-Deshmukh/TREC_background_linking/blob/master/res1.png" alt="drawing" height="150" width="400"/>
+<img src="https://github.com/Anup-Deshmukh/TREC_background_linking/blob/master/res1.png" alt="drawing" height="150" width="250"/>
 
-##### If you find this code helpful please cite our [arxiv paper](https://arxiv.org/pdf/2007.12603.pdf)
+#### If you find this code helpful please cite our [arxiv paper](https://arxiv.org/pdf/2007.12603.pdf)
 
-##### Recommended citation: Deshmukh, Anup Anand, and Udhav Sethi. "IR-BERT: Leveraging BERT for Semantic Search in Background Linking for News Articles." arXiv preprint arXiv:2007.12603 (2020).
+#### Recommended citation: Deshmukh, Anup Anand, and Udhav Sethi. "IR-BERT: Leveraging BERT for Semantic Search in Background Linking for News Articles." arXiv preprint arXiv:2007.12603 (2020).
 
 
