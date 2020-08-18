@@ -13,7 +13,7 @@ This repo has the implementation of two methods
 		* entities19
 		* eqrels
 	* All the background linking related files (The dataset, topics and qrels) go in the path given by "DataPath" variable
-* Result files are created by both main scripts of two models, IR-BERT and Weighted BM25 respectively 
+* Result files are created by both main scripts of two models, IR-BERT and Weighted BM25 
 * These result files in turn can be directly evaluted by using the background linking eval script
 
 #### Data Processing [code here](./src/IR-BERT/Preprocess.py)
