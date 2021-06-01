@@ -16,6 +16,15 @@ This repo has the implementation of two methods
 * Result files are created by both main scripts of two models, IR-BERT and Weighted BM25 
 * These result files in turn can be directly evaluted by using the background linking eval script
 
+
+#### Steps to run IR-BERT
+
+* Set appropriate paths in src/path.cfg
+* Run merge.py in wapo/WashingtonPost/data. You will need the files listed in "filenames" in this directory alongside the merge script.
+* Start elasticsearch server. command: "elasticsearch". (In case of port mismatch check "http.port" in elasticsearch.yml)
+* Run Preprocess.py
+* Run IR-BERT.py
+
 #### Data Processing [code here](./src/IR-BERT/Preprocess.py)
 
 * lower case all the text 
