@@ -2,7 +2,21 @@ import sys
 sys.path.append("..")
 
 
-import DataProcess.getCfg as cfg
+def get_path_conf(filename):
+	path_mp = {}
+	with open(filename, 'r', encoding='utf-8') as f:
+		for line in f:
+			li = line[:-1].split('=')
+			path_mp[li[0]] = li[1]
+	return path_mp
+
+
+# word split
+def word_cut(s):
+	s = re.sub("[\s+\.\!\/_,$%^*(+\"\']+|[+——！，。？、~@#￥%……&*（）]+", " ", s)
+	return s.split(' ')
+
+
 import os
 import json
 import re
@@ -11,10 +25,10 @@ from elasticsearch import Elasticsearch
 from nltk.stem.porter import *
 
 # get file path conf
-path_mp = cfg.get_path_conf('../path.cfg')
+path_mp = get_path_conf('/Users/udhavsethi/dev/ref/TREC_background_linking/src/path.cfg')
 es = Elasticsearch()
 stemmer = PorterStemmer()
-INDEX_NAME = "news_try1"
+INDEX_NAME = "wapo21"
 
 
 def extract_body(args = None):
@@ -58,18 +72,22 @@ def process_washington_post(filename):
             obj['body'] = str(obj['body']).lower()
 
             # stemming
-            w_list = cfg.word_cut(obj['body'])
+            w_list = word_cut(obj['body'])
             for i in range(len(w_list)):
                 if w_list[i].isalpha():
                     w_list[i] = stemmer.stem(w_list[i])
             obj['body'] = ' '.join(w_list)
-            w_list = cfg.word_cut(obj['title'])
+            w_list = word_cut(obj['title'])
             for i in range(len(w_list)):
                 if w_list[i].isalpha():
                     w_list[i] = stemmer.stem(w_list[i])
             obj['title'] = ' '.join(w_list)
 
             del obj['contents']
+            date_blocks = [x for x in obj['content'] if x['type'] == 'date']
+            for block in date_blocks:
+                obj['content'].remove(block)
+
             obj['title_body'] = (str(obj['title']) + ' ' + str(obj['body'])).lower()
             obj['title_author_date'] = (str(obj['title']) + ' ' + str(obj['author']) + ' ' + str(obj['published_date'])).lower()
             doc = json.dumps(obj)
