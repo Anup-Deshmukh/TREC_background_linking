@@ -61,38 +61,52 @@ def filter_kicker(doc):
 def process_washington_post(filename):
     with open(filename, 'r', encoding='utf-8') as f:
         for line in tqdm(f):
-            obj = json.loads(line)
-            obj['kicker'] = filter_kicker(obj)
-            if obj['kicker'] is False:
+            try:
+                obj = json.loads(line)
+                # if obj['id'] == "76f870f2-5829-11e1-a0b0-4cc207a286f0":
+                #     continue
+                obj['kicker'] = filter_kicker(obj)
+                if obj['kicker'] is False:
+                    continue
+                obj['body'] = extract_body([obj['contents']])
+
+                # to lower case
+                obj['title'] = str(obj['title']).lower()
+                obj['body'] = str(obj['body']).lower()
+
+                # stemming
+                w_list = word_cut(obj['body'])
+                for i in range(len(w_list)):
+                    if w_list[i].isalpha():
+                        w_list[i] = stemmer.stem(w_list[i])
+                obj['body'] = ' '.join(w_list)
+                w_list = word_cut(obj['title'])
+                for i in range(len(w_list)):
+                    if w_list[i].isalpha():
+                        w_list[i] = stemmer.stem(w_list[i])
+                obj['title'] = ' '.join(w_list)
+
+                del obj['contents']
+                if 'content' in obj:
+                    date_blocks = [x for x in obj['content'] if x['type'] == 'date']
+                    if date_blocks:
+                        for block in date_blocks:
+                            obj['content'].remove(block)
+
+                obj['title_body'] = (str(obj['title']) + ' ' + str(obj['body'])).lower()
+                obj['title_author_date'] = (str(obj['title']) + ' ' + str(obj['author']) + ' ' + str(obj['published_date'])).lower()
+                doc = json.dumps(obj)
+                # insert data
+                res = es.index(index=INDEX_NAME, id=obj['id'], body=doc)
+            except Exception as e:
+                if (obj is not None) and (obj['id'] is not None):
+                    f1 = open("exception_ids.txt", "a")
+                    f1.write("{}\n".format(obj['id']))
+                    f1.close()
+                    f2 = open("exceptions.txt", "a")
+                    f2.write("id: {}, exception: {}\n".format(obj['id'],e))
+                    f2.close()
                 continue
-            obj['body'] = extract_body([obj['contents']])
-
-            # to lower case
-            obj['title'] = str(obj['title']).lower()
-            obj['body'] = str(obj['body']).lower()
-
-            # stemming
-            w_list = word_cut(obj['body'])
-            for i in range(len(w_list)):
-                if w_list[i].isalpha():
-                    w_list[i] = stemmer.stem(w_list[i])
-            obj['body'] = ' '.join(w_list)
-            w_list = word_cut(obj['title'])
-            for i in range(len(w_list)):
-                if w_list[i].isalpha():
-                    w_list[i] = stemmer.stem(w_list[i])
-            obj['title'] = ' '.join(w_list)
-
-            del obj['contents']
-            date_blocks = [x for x in obj['content'] if x['type'] == 'date']
-            for block in date_blocks:
-                obj['content'].remove(block)
-
-            obj['title_body'] = (str(obj['title']) + ' ' + str(obj['body'])).lower()
-            obj['title_author_date'] = (str(obj['title']) + ' ' + str(obj['author']) + ' ' + str(obj['published_date'])).lower()
-            doc = json.dumps(obj)
-            # insert data
-            res = es.index(index=INDEX_NAME, id=obj['id'], body=doc)
 
 
 # put all the news into elasticsearch
@@ -100,6 +114,9 @@ def init_es():
     # create index
     setting = {
         "index": {
+            "mapping" : {
+                "ignore_malformed" : "true"
+            },
             "similarity": {
                 "my_bm25": {
                     "type": "BM25",
