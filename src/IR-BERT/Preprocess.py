@@ -63,8 +63,8 @@ def process_washington_post(filename):
         for line in tqdm(f):
             try:
                 obj = json.loads(line)
-                # if obj['id'] == "d1970396-0591-11e2-afff-d6c7f20a83bf":
-                #     continue
+                # if obj['id'] == "76f870f2-5829-11e1-a0b0-4cc207a286f0":
+                    # continue
                 obj['kicker'] = filter_kicker(obj)
                 if obj['kicker'] is False:
                     continue
@@ -87,10 +87,16 @@ def process_washington_post(filename):
                 obj['title'] = ' '.join(w_list)
 
                 del obj['contents']
+
+                # filter content block
                 if 'content' in obj:
-                    date_blocks = [x for x in obj['content'] if ((x is not None) and ('type' in x) and (x['type'] == 'date'))]
-                    if date_blocks:
-                        for block in date_blocks:
+                    date_and_media_blocks = [x for x in obj['content'] if ((x is not None) and ('type' in x) and (x['type'] in {'date', 'image', 'video'}))]
+                    if date_and_media_blocks:
+                        for block in date_and_media_blocks:
+                            obj['content'].remove(block)
+                    no_content_blocks = [x for x in obj['content'] if ((x is not None) and ('content' not in x))]
+                    if no_content_blocks:
+                        for block in no_content_blocks:
                             obj['content'].remove(block)
 
                 obj['title_body'] = (str(obj['title']) + ' ' + str(obj['body'])).lower()
