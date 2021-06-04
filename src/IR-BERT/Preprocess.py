@@ -24,11 +24,13 @@ from tqdm import tqdm
 from elasticsearch import Elasticsearch
 from nltk.stem.porter import *
 
+from dateutil import parser
+
 # get file path conf
 path_mp = get_path_conf('/Users/udhavsethi/dev/ref/TREC_background_linking/src/path.cfg')
 es = Elasticsearch()
 stemmer = PorterStemmer()
-INDEX_NAME = "wapo21"
+INDEX_NAME = "wapo22"
 
 
 def extract_body(args = None):
@@ -59,57 +61,75 @@ def filter_kicker(doc):
 
 
 def process_washington_post(filename):
+    # get pending doc ids
+    with open("/Users/udhavsethi/Desktop/pending.txt") as f:
+        pending_ids = f.readlines()
+    pending_ids = [x.strip() for x in pending_ids]
+
     with open(filename, 'r', encoding='utf-8') as f:
         for line in tqdm(f):
             try:
                 obj = json.loads(line)
-                # if obj['id'] == "76f870f2-5829-11e1-a0b0-4cc207a286f0":
+
+                if obj['id'] in pending_ids:
+                # if obj['id'] == "3BKCWWXFCAI6PJS5DLAP27YJPY":
                     # continue
-                obj['kicker'] = filter_kicker(obj)
-                if obj['kicker'] is False:
-                    continue
-                obj['body'] = extract_body([obj['contents']])
 
-                # to lower case
-                obj['title'] = str(obj['title']).lower()
-                obj['body'] = str(obj['body']).lower()
+                    # set published date if none
+                    if (obj is not None and 'published_date' not in obj):
+                        date_block = [x for x in obj['content'] if ((x is not None) and ('type' in x) and (x['type'] in {'date'}))]
+                        if date_block:
+                            stime = date_block[0]['content']
+                            obj['published_date'] = int(parser.parse(stime).timestamp() * 1000.0)
 
-                # stemming
-                w_list = word_cut(obj['body'])
-                for i in range(len(w_list)):
-                    if w_list[i].isalpha():
-                        w_list[i] = stemmer.stem(w_list[i])
-                obj['body'] = ' '.join(w_list)
-                w_list = word_cut(obj['title'])
-                for i in range(len(w_list)):
-                    if w_list[i].isalpha():
-                        w_list[i] = stemmer.stem(w_list[i])
-                obj['title'] = ' '.join(w_list)
+                    obj['kicker'] = filter_kicker(obj)
+                    if obj['kicker'] is False:
+                        continue
+                    obj['body'] = extract_body([obj['contents']])
 
-                del obj['contents']
+                    # to lower case
+                    obj['title'] = str(obj['title']).lower()
+                    obj['body'] = str(obj['body']).lower()
 
-                # filter content block
-                if 'content' in obj:
-                    date_and_media_blocks = [x for x in obj['content'] if ((x is not None) and ('type' in x) and (x['type'] in {'date', 'image', 'video'}))]
-                    if date_and_media_blocks:
-                        for block in date_and_media_blocks:
-                            obj['content'].remove(block)
-                    no_content_blocks = [x for x in obj['content'] if ((x is not None) and ('content' not in x))]
-                    if no_content_blocks:
-                        for block in no_content_blocks:
-                            obj['content'].remove(block)
+                    # stemming
+                    w_list = word_cut(obj['body'])
+                    for i in range(len(w_list)):
+                        if w_list[i].isalpha():
+                            w_list[i] = stemmer.stem(w_list[i])
+                    obj['body'] = ' '.join(w_list)
+                    w_list = word_cut(obj['title'])
+                    for i in range(len(w_list)):
+                        if w_list[i].isalpha():
+                            w_list[i] = stemmer.stem(w_list[i])
+                    obj['title'] = ' '.join(w_list)
 
-                obj['title_body'] = (str(obj['title']) + ' ' + str(obj['body'])).lower()
-                obj['title_author_date'] = (str(obj['title']) + ' ' + str(obj['author']) + ' ' + str(obj['published_date'])).lower()
-                doc = json.dumps(obj)
-                # insert data
-                res = es.index(index=INDEX_NAME, id=obj['id'], body=doc)
+                    if 'contents' in obj:
+                        del obj['contents']
+                    if 'content' in obj:
+                        del obj['content']
+
+                    # # filter content block
+                    # if 'content' in obj:
+                    #     date_and_media_blocks = [x for x in obj['content'] if ((x is not None) and ('type' in x) and (x['type'] in {'date', 'image', 'video'}))]
+                    #     if date_and_media_blocks:
+                    #         for block in date_and_media_blocks:
+                    #             obj['content'].remove(block)
+                    #     no_content_blocks = [x for x in obj['content'] if ((x is not None) and ('content' not in x))]
+                    #     if no_content_blocks:
+                    #         for block in no_content_blocks:
+                    #             obj['content'].remove(block)
+
+                    obj['title_body'] = (str(obj['title']) + ' ' + str(obj['body'])).lower()
+                    obj['title_author_date'] = (str(obj['title']) + ' ' + str(obj['author']) + ' ' + str(obj['published_date'])).lower()
+                    doc = json.dumps(obj)
+                    # insert data
+                    res = es.index(index=INDEX_NAME, id=obj['id'], body=doc)
             except Exception as e:
                 if (obj is not None) and (obj['id'] is not None):
-                    f1 = open("exception_ids.txt", "a")
+                    f1 = open("exception_ids_3.txt", "a")
                     f1.write("{}\n".format(obj['id']))
                     f1.close()
-                    f2 = open("exceptions.txt", "a")
+                    f2 = open("exceptions_3.txt", "a")
                     f2.write("id: {}, exception: {}\n".format(obj['id'],e))
                     f2.close()
                 continue
