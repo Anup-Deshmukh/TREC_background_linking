@@ -12,6 +12,9 @@ class XmlHandler(xml.sax.ContentHandler):
         self.num = ""
         self.docid = ""
         self.url = ""
+        self.title = ""
+        self.desc = ""
+        self.narr = ""
         self.entities = []
         self.emp = {}
 
@@ -45,6 +48,9 @@ class XmlHandler(xml.sax.ContentHandler):
             mp['num'] = self.num
             mp['docid'] = self.docid
             mp['url'] = self.url
+            mp['title'] = self.title
+            mp['desc'] = self.desc
+            mp['narr'] = self.narr
             mp['entities'] = self.entities
             topics.append(mp)
             # print("------------------ TOPICS HERE: ", topics)
@@ -58,6 +64,12 @@ class XmlHandler(xml.sax.ContentHandler):
             self.docid = content
         elif self.tag == "url":
             self.url = content
+        elif self.tag == "title":
+            self.title = content
+        elif self.tag == "desc":
+            self.desc = content
+        elif self.tag == "narr":
+            self.narr = content
         elif self.tag == "id" or self.tag == 'mention' or self.tag == 'link':
             self.emp[self.tag] = content
 
@@ -89,7 +101,7 @@ if __name__ == "__main__":
     Handler = XmlHandler()
     parser.setContentHandler(Handler)
 
-    parser.parse("/home/aa2deshm/Desktop/Waterloo/Winter 2020/IR/project/Track_code-master/wapo/WashingtonPost/data/topics2018.txt")
+    parser.parse("/Users/udhavsethi/dev/ref/TREC_background_linking/wapo/WashingtonPost/data/newsir21-topics.txt")
     # parser.parse("E:/Track/WashingtonPost.v2/data/newsir18-entities.txt")
 
 
