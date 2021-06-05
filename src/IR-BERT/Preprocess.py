@@ -62,7 +62,7 @@ def filter_kicker(doc):
 
 def process_washington_post(filename):
     # get pending doc ids
-    with open("/Users/udhavsethi/Desktop/pending.txt") as f:
+    with open("/Users/udhavsethi/Desktop/pending2.txt") as f:
         pending_ids = f.readlines()
     pending_ids = [x.strip() for x in pending_ids]
 
@@ -77,10 +77,18 @@ def process_washington_post(filename):
 
                     # set published date if none
                     if (obj is not None and 'published_date' not in obj):
-                        date_block = [x for x in obj['content'] if ((x is not None) and ('type' in x) and (x['type'] in {'date'}))]
-                        if date_block:
-                            stime = date_block[0]['content']
-                            obj['published_date'] = int(parser.parse(stime).timestamp() * 1000.0)
+                        if 'publish_date' in obj:
+                            obj['published_date'] = obj['publish_date']
+                        elif 'content' in obj:
+                            date_block = [x for x in obj['content'] if ((x is not None) and ('type' in x) and (x['type'] in {'date'}))]
+                            if date_block:
+                                stime = date_block[0]['content']
+                                obj['published_date'] = int(parser.parse(stime).timestamp() * 1000.0)
+                        elif 'contents' in obj:
+                            date_block = [x for x in obj['contents'] if ((x is not None) and ('type' in x) and (x['type'] in {'date'}))]
+                            if date_block:
+                                stime = date_block[0]['content']
+                                obj['published_date'] = int(parser.parse(stime).timestamp() * 1000.0)
 
                     obj['kicker'] = filter_kicker(obj)
                     if obj['kicker'] is False:
@@ -126,10 +134,10 @@ def process_washington_post(filename):
                     res = es.index(index=INDEX_NAME, id=obj['id'], body=doc)
             except Exception as e:
                 if (obj is not None) and (obj['id'] is not None):
-                    f1 = open("exception_ids_3.txt", "a")
+                    f1 = open("exception_ids_5.txt", "a")
                     f1.write("{}\n".format(obj['id']))
                     f1.close()
-                    f2 = open("exceptions_3.txt", "a")
+                    f2 = open("exceptions_5.txt", "a")
                     f2.write("id: {}, exception: {}\n".format(obj['id'],e))
                     f2.close()
                 continue
@@ -216,8 +224,8 @@ def init_es():
         "settings": setting,
         "mappings": mapping
     }
-    es.indices.delete(index=INDEX_NAME, ignore=[400, 404])
-    es.indices.create(index=INDEX_NAME, body=create_index_body, ignore=400)
+    # es.indices.delete(index=INDEX_NAME, ignore=[400, 404])
+    # es.indices.create(index=INDEX_NAME, body=create_index_body, ignore=400)
     # add all the file into elasticsearch
     process_washington_post(path_mp['DataPath'] + path_mp['WashingtonPost'])
 
