@@ -15,14 +15,20 @@ import math
 #nltk.download('stopwords')
 #from nltk.tokenize import word_tokenize
 
-INDEX_NAME = "news_try1"
-result_file = "../../wapo/WashingtonPost/data/result_files/IND_UW_A8.test"
+INDEX_NAME = "wapo22"
+result_file = "/Users/udhavsethi/dev/ref/TREC_background_linking/wapo/WashingtonPost/data/result_files/UW_UDHAVSETHI.txt"
 
-path_mp = {}
-with open(os.getcwd()+'/../path.cfg', 'r', encoding='utf-8') as f:
-	for line in f:
-		li = line[:-1].split('=')
-		path_mp[li[0]] = li[1]
+
+def get_path_conf(filename):
+	path_mp = {}
+	with open(filename, 'r', encoding='utf-8') as f:
+		for line in f:
+			li = line[:-1].split('=')
+			path_mp[li[0]] = li[1]
+	return path_mp
+
+# get file path conf
+path_mp = get_path_conf('/Users/udhavsethi/dev/ref/TREC_background_linking/src/path.cfg')
 
 # init bert finetuned model
 model = SentenceTransformer('bert-base-nli-mean-tokens')
@@ -31,10 +37,10 @@ model = SentenceTransformer('bert-base-nli-mean-tokens')
 es = Elasticsearch()
 topics = xh.get_topics(path_mp['DataPath'] + path_mp['topics'])
 # get stop words list
-stwlist = [line.strip() for line in open('stopwords.txt', encoding='utf-8').readlines()]
+stwlist = [line.strip() for line in open('/Users/udhavsethi/dev/ref/TREC_background_linking/src/IR-BERT/stopwords.txt', encoding='utf-8').readlines()]
 
 # init parameters
-D = 571963
+D = 698983	# number of documents
 min_words = 100
 minw_bert = 100
 num_res_bm25 = 180
@@ -61,51 +67,60 @@ def test_backgound_linking():
 
 			# check if the docid of the topic is present in the indexed dataset
 			res = es.search(index=INDEX_NAME, body=dsl)
+			if res['hits']['hits'] == []:
+				print("docid not found: {}".format(mp['docid']))
+				continue
 			doc = res['hits']['hits'][0]['_source']
 			dt = doc['published_date']
 			docid = doc['id']
 			print("found docid: ", docid)
 			
+			body = "{} {} {} {}".format(mp['title'], mp['desc'], mp['narr'], doc['body']).lower()
+
 			# remove stop words
-			text = re.sub('[’!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~]+', '', doc['body'])
+			text = re.sub('[’!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~]+', '', body)
 			words = "#".join(jieba.cut(text)).split('#')
+			words = [word for word in words if word not in {'"', ' ', '', '“', '”'}]
+			words = [word for word in words if word not in stwlist]
 
 
 			# initialize tf-idf
 			q = {}
 			tf = {}
 			for w in words:
-				if w != "" and w != ' ' and w not in stwlist:
-					if w in tf:
-						tf[w] += 1.0
-					else:
-						tf[w] = 1.0
-					# calc idf of word w (how many docs it is present in)
-					dsl = {
-						"size": 0,
-						'query': {
-							'match_phrase': {
-								'title_body': w
-							},
+				if w in tf:
+					tf[w] += 1.0
+				else:
+					tf[w] = 1.0
+				# calc idf of word w (how many docs it is present in)
+				dsl = {
+					"size": 0,
+					'query': {
+						'match_phrase': {
+							'title_body': w
 						},
-						"aggs": {
-							"idf": {
-								"terms": {
-									"field": "source.keyword"
-								}
+					},
+					"aggs": {
+						"idf": {
+							"terms": {
+								"field": "source.keyword"
 							}
 						}
-
 					}
-					res = es.search(index=INDEX_NAME, body=dsl)
-					res = res['aggregations']['idf']['buckets']
-					idf = 0.0
-					for dc in res:
-						idf += dc['doc_count']
-					if idf > 0.0:
-						q[w] = np.log(D / idf) # formula for idf
-					else:
-						q[w] = 0.0
+
+				}
+				res = es.search(index=INDEX_NAME, body=dsl)
+				res = res['aggregations']['idf']['buckets']
+				idf = 0.0
+				for dc in res:
+					idf += dc['doc_count']
+				if idf > 0.0:
+					q[w] = np.log(D / idf) # formula for idf
+				else:
+					q[w] = 0.0
+
+
+
 			for w in q.keys():
 				q[w] *= tf[w] # q now contains the tf * idf for each word
 			q = sorted(q.items(), key=lambda x: x[1], reverse=True)
@@ -160,8 +175,8 @@ def test_backgound_linking():
 			topic_cnt += 1
 			
 			# output result.test file
-			print('Number of hits:', len(res_bert_bm))
-			print('Writing to file: ', result_file)
+			# print('Number of hits:', len(res_bert_bm))
+			# print('Writing to file: ', result_file)
 			cnt = 1
 			for ri in res_bert_bm:
 				out = []
@@ -170,7 +185,7 @@ def test_backgound_linking():
 				out.append(ri['_source']['id'])
 				out.append(str(cnt))
 				out.append(str(ri['_score']))
-				out.append('IND_UW_A8')
+				out.append('UW_UDHAVSETHI')
 				ans = "\t".join(out) + "\n"
 				f1.write(ans)
 				cnt += 1				
