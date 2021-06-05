@@ -3,3 +3,8 @@ __pycache__
 Track_code.iml
 venv
 wapo
+
+
+.DS_Store
+.vscode
+exceptions
