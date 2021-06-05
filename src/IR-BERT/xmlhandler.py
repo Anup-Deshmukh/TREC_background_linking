@@ -15,6 +15,7 @@ class XmlHandler(xml.sax.ContentHandler):
         self.title = ""
         self.desc = ""
         self.narr = ""
+        self.subtopics = []
         self.entities = []
         self.emp = {}
 
@@ -27,6 +28,8 @@ class XmlHandler(xml.sax.ContentHandler):
         elif self.tag == "entities":
             1
             # print("=====Entities=====")
+        elif self.tag == "subtopics":
+            self.subtopics = []
 
     # Call when an elements ends
     def endElement(self, tag):
@@ -43,6 +46,8 @@ class XmlHandler(xml.sax.ContentHandler):
             self.entities.append(self.emp)
             # print(self.emp)
             self.emp = {}
+        elif tag == "sub":
+            self.subtopics.append(self.sub)
         elif tag == "top":
             mp = {}
             mp['num'] = self.num
@@ -51,6 +56,7 @@ class XmlHandler(xml.sax.ContentHandler):
             mp['title'] = self.title
             mp['desc'] = self.desc
             mp['narr'] = self.narr
+            mp['subtopics'] = self.subtopics
             mp['entities'] = self.entities
             topics.append(mp)
             # print("------------------ TOPICS HERE: ", topics)
@@ -70,6 +76,8 @@ class XmlHandler(xml.sax.ContentHandler):
             self.desc = content
         elif self.tag == "narr":
             self.narr = content
+        elif self.tag == "sub":
+            self.sub = content
         elif self.tag == "id" or self.tag == 'mention' or self.tag == 'link':
             self.emp[self.tag] = content
 

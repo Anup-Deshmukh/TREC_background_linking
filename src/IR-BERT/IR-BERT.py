@@ -16,7 +16,7 @@ import math
 #from nltk.tokenize import word_tokenize
 
 INDEX_NAME = "wapo22"
-result_file = "/Users/udhavsethi/dev/ref/TREC_background_linking/wapo/WashingtonPost/data/result_files/UW_UDHAVSETHI.txt"
+result_file = "/Users/udhavsethi/dev/ref/TREC_background_linking/wapo/WashingtonPost/data/result_files/UW_UDHAVSETHI_SUBT.txt"
 
 
 def get_path_conf(filename):
@@ -54,7 +54,7 @@ def test_backgound_linking():
 		num = 1
 		for mp in topics:
 			# print(mp['num'].split(':')[1].strip())
-			print("query docid", mp['docid'])
+			# print("query docid", mp['docid'])
 			num += 1
 			# search by docid of the topic to get the query
 			dsl = {
@@ -75,6 +75,7 @@ def test_backgound_linking():
 			docid = doc['id']
 			print("found docid: ", docid)
 			
+			# *********************************************************************************
 			body = "{} {} {} {}".format(mp['title'], mp['desc'], mp['narr'], doc['body']).lower()
 
 			# remove stop words
@@ -119,76 +120,130 @@ def test_backgound_linking():
 				else:
 					q[w] = 0.0
 
-
-
 			for w in q.keys():
 				q[w] *= tf[w] # q now contains the tf * idf for each word
-			q = sorted(q.items(), key=lambda x: x[1], reverse=True)
-			query = ""
-			sz = min(min_words, len(q))
-			cnt = 0
-			for w in q:
-				if cnt >= sz:
-					break
-				query += ' ' + w[0]
-				cnt += 1
-			# query the doc
-			dsl = {
-				"size": num_res_bm25,
-				"query": {
-					'bool': {
-						'must': {
-							'match': {
-								'title_body':{
-									'query': query,
-									'boost': 1
+			query1 = sorted(q.items(), key=lambda x: x[1], reverse=True)
+
+			for subt_num, subt in enumerate(mp['subtopics']):
+				print("running topicid.subtopicid: {}.{}".format(mp['num'].split(':')[1].strip(), subt_num))
+				# *********************************************************************************
+				# Do the same thing for subquery
+				subt_body = subt.strip().lower()
+
+				# remove stop words
+				text = re.sub('[’!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~]+', '', subt_body)
+				words = "#".join(jieba.cut(text)).split('#')
+				words = [word for word in words if word not in {'"', ' ', '', '“', '”'}]
+				words = [word for word in words if word not in stwlist]
+
+
+				# initialize tf-idf
+				q = {}
+				tf = {}
+				for w in words:
+					if w in tf:
+						tf[w] += 1.0
+					else:
+						tf[w] = 1.0
+					# calc idf of word w (how many docs it is present in)
+					dsl = {
+						"size": 0,
+						'query': {
+							'match_phrase': {
+								'title_body': w
+							},
+						},
+						"aggs": {
+							"idf": {
+								"terms": {
+									"field": "source.keyword"
 								}
 							}
-						},
-						'should': [
-							{
+						}
+
+					}
+					res = es.search(index=INDEX_NAME, body=dsl)
+					res = res['aggregations']['idf']['buckets']
+					idf = 0.0
+					for dc in res:
+						idf += dc['doc_count']
+					if idf > 0.0:
+						q[w] = np.log(D / idf) # formula for idf
+					else:
+						q[w] = 0.0
+
+				for w in q.keys():
+					q[w] *= tf[w] # q now contains the tf * idf for each word
+				query2 = sorted(q.items(), key=lambda x: x[1], reverse=True)
+
+				q = query2 + query1
+				# *********************************************************************************
+
+				query = ""
+				sz = min(min_words, len(q))
+				cnt = 0
+				for w in q:
+					if cnt >= sz:
+						break
+					query += ' ' + w[0]
+					cnt += 1
+				# query the doc
+				dsl = {
+					"size": num_res_bm25,
+					"query": {
+						'bool': {
+							'must': {
 								'match': {
-									'title_body': {
-										'query': doc['title'],
-										"boost": 2.34
+									'title_body':{
+										'query': query,
+										'boost': 1
 									}
 								}
 							},
-						],
-						"must_not": {"match": {"id": docid}},
-						'filter': {
-							"range": {"published_date": {"lt": dt}}
-						}
-					},
+							'should': [
+								{
+									'match': {
+										'title_body': {
+											'query': doc['title'],
+											"boost": 2.34
+										}
+									}
+								},
+							],
+							"must_not": {"match": {"id": docid}},
+							'filter': {
+								"range": {"published_date": {"lt": dt}}
+							}
+						},
+					}
 				}
-			}
-			# res is the set of retrieved documents
-			res_bm25 = es.search(index=INDEX_NAME, body=dsl)
-			res_bm25 = res_bm25['hits']['hits']
-			
-			# refine bm25 results with bert
-			res_bert_bm = filter_bert(res_bm25, query, minw_bert, num_res_bm25, num_res_bert)
+				# res is the set of retrieved documents
+				res_bm25 = es.search(index=INDEX_NAME, body=dsl)
+				res_bm25 = res_bm25['hits']['hits']
 
-			# calculate diversity of retrieved documents 
-			diversity_score = calc_diversity(res_bert_bm, num_res_bert, alpha_title)
-			add_score += diversity_score
-			topic_cnt += 1
-			
-			# output result.test file
-			# print('Number of hits:', len(res_bert_bm))
-			# print('Writing to file: ', result_file)
-			cnt = 1
-			for ri in res_bert_bm:
-				out = []
-				out.append(mp['num'].split(':')[1].strip())
-				out.append('Q0')
-				out.append(ri['_source']['id'])
-				out.append(str(cnt))
-				out.append(str(ri['_score']))
-				out.append('UW_UDHAVSETHI')
-				ans = "\t".join(out) + "\n"
-				f1.write(ans)
-				cnt += 1				
+				# refine bm25 results with bert
+				res_bert_bm = filter_bert(res_bm25, query, minw_bert, num_res_bm25, num_res_bert)
+
+				# calculate diversity of retrieved documents
+				diversity_score = calc_diversity(res_bert_bm, num_res_bert, alpha_title)
+				add_score += diversity_score
+				topic_cnt += 1
+
+				# output result.test file
+				# print('Number of hits:', len(res_bert_bm))
+				# print('Writing to file: ', result_file)
+				cnt = 1
+				for ri in res_bert_bm:
+					out = []
+					out.append('{}.{}'.format(mp['num'].split(':')[1].strip(), subt_num))
+					out.append('Q0')
+					out.append(ri['_source']['id'])
+					out.append(str(cnt))
+					out.append(str(ri['_score']))
+					out.append('UW_UDHAVSETHI_SUBT')
+					ans = "\t".join(out) + "\n"
+					f1.write(ans)
+					cnt += 1
 	#print(topic_cnt)
 	print('diversity of all retrieved docuements for all topics: ', add_score/topic_cnt)
 	return
