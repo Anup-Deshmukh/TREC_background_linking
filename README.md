@@ -2,7 +2,7 @@
 ## IR-BERT @ TREC 2020 News Track (Background Linking)
 
 This repo has the implementation of two methods
-* Weighted Search Query + BM25 [code here](./src/IR-BERT/wBT+BM25.py)
+* Weighted Search Query + BM25 [code here](./src/IR-BERT/WBT%2BBM25.py)
 * IR-BERT [code here](./src/IR-BERT/IR-BERT.py)
 
 #### Steps for running the code on your machine
